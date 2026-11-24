@@ -1,6 +1,6 @@
 #!/bin/sh
-# E-Sign installer launcher for Open Minis
-# Downloads the E-Sign installer from its published source and verifies every artifact.
+# Lanzador del Instalador E-Sign para Open Minis
+# Descarga el instalador E-Sign desde su fuente de distribucion y verifica los archivos.
 set -eu
 umask 077
 
@@ -18,19 +18,19 @@ case "$MODE" in
   install|check|pair|developer-mode|sign-out) ;;
   -h|--help|help)
     cat <<'USAGE'
-E-Sign installer launcher for Open Minis
+Instalador E-Sign de Davidios para Open Minis
 
-Usage:
+Uso:
   ./install.sh [install|check|pair|developer-mode|sign-out]
 
-Commands are forwarded to the official AppleJR E-Sign installer.
-The default command is: install
+Los comandos se envian al instalador de E-Sign.
+El comando predeterminado es: install
 USAGE
     exit 0
     ;;
   *)
-    echo "Error: unsupported command: $MODE" >&2
-    echo "Use: install, check, pair, developer-mode, or sign-out" >&2
+    echo "Error: comando no reconocido: $MODE" >&2
+    echo "Opciones: install, check, pair, developer-mode o sign-out" >&2
     exit 2
     ;;
 esac
@@ -40,18 +40,18 @@ fail() {
   exit 1
 }
 
-[ "$(uname -s)" = "Linux" ] || fail "This installer requires Linux."
+[ "$(uname -s)" = "Linux" ] || fail "Este instalador requiere Linux."
 MACHINE="$(uname -m)"
 case "$MACHINE" in
   aarch64|arm64) ;;
-  *) fail "Unsupported architecture: $MACHINE (ARM64 is required)." ;;
+  *) fail "Arquitectura no compatible: $MACHINE (se requiere ARM64)." ;;
 esac
 
 for tool in minis-bonjour minis-open sha256sum; do
-  command -v "$tool" >/dev/null 2>&1 || fail "Required command not found: $tool"
+  command -v "$tool" >/dev/null 2>&1 || fail "No se encontro el comando necesario: $tool"
 done
 
-command -v wget >/dev/null 2>&1 || fail "wget is required in Open Minis."
+command -v wget >/dev/null 2>&1 || fail "Se necesita wget en Open Minis."
 
 HOME_DIR="${HOME:?HOME is not set}"
 INSTALL_DIR="$HOME_DIR/.e-sign/bin"
@@ -69,7 +69,7 @@ download() {
     fi
     if [ "$attempt" -lt 3 ]; then
       next_attempt=$((attempt + 1))
-      echo "Download attempt failed; retrying ($next_attempt/3)..." >&2
+      echo "La descarga fallo. Reintentando ($next_attempt/3)..." >&2
     fi
     attempt=$((attempt + 1))
   done
@@ -80,27 +80,27 @@ verify_sha256() {
   file="$1"
   expected="$2"
   actual="$(sha256sum "$file" | awk '{print $1}')"
-  [ "$actual" = "$expected" ] || fail "SHA-256 verification failed for $(basename "$file")."
+  [ "$actual" = "$expected" ] || fail "La verificacion SHA-256 fallo para $(basename "$file")."
 }
 
-echo "E-Sign $VERSION (build $BUILD) — Open Minis / $ARCH"
-echo "Downloading E-Sign installer..."
+echo "E-Sign $VERSION (compilacion $BUILD) — Instalador Davidios / Open Minis / $ARCH"
+echo "Descargando el Instalador E-Sign..."
 
 RAW="$TMP_DIR/e-sign-installer.bin"
 XZ_FILE="$TMP_DIR/e-sign-installer.bin.xz"
 GZIP_FILE="$TMP_DIR/e-sign-installer.bin.gz"
 FETCHED=""
 
-# Use a compressed format only when its decompressor is available.
-# wget overwrites each attempt instead of resuming stale partial files (which can cause HTTP 416).
+# Utiliza formatos comprimidos solo si esta disponible la herramienta para descomprimirlos.
+# wget reemplaza el archivo en cada intento para evitar errores HTTP 416 por descargas parciales anteriores.
 if command -v xz >/dev/null 2>&1; then
   if download "${BASE_URL}.xz" "$XZ_FILE"; then
     if [ "$(sha256sum "$XZ_FILE" | awk '{print $1}')" = "$SHA256_XZ" ]; then
-      xz -dc "$XZ_FILE" > "$RAW" || fail "Could not unpack the XZ download."
+      xz -dc "$XZ_FILE" > "$RAW" || fail "No se pudo descomprimir el archivo XZ."
       FETCHED="xz"
     else
       rm -f "$XZ_FILE"
-      echo "XZ checksum did not match; trying another format..." >&2
+      echo "La comprobacion XZ no coincide; probando otro formato..." >&2
     fi
   fi
 fi
@@ -108,17 +108,17 @@ fi
 if [ -z "$FETCHED" ] && command -v gzip >/dev/null 2>&1; then
   if download "${BASE_URL}.gz" "$GZIP_FILE"; then
     if [ "$(sha256sum "$GZIP_FILE" | awk '{print $1}')" = "$SHA256_GZIP" ]; then
-      gzip -dc "$GZIP_FILE" > "$RAW" || fail "Could not unpack the GZIP download."
+      gzip -dc "$GZIP_FILE" > "$RAW" || fail "No se pudo descomprimir el archivo GZIP."
       FETCHED="gzip"
     else
       rm -f "$GZIP_FILE"
-      echo "GZIP checksum did not match; trying the raw download..." >&2
+      echo "La comprobacion GZIP no coincide; probando la descarga original..." >&2
     fi
   fi
 fi
 
 if [ -z "$FETCHED" ]; then
-  download "$BASE_URL" "$RAW" || fail "Could not download the E-Sign installer."
+  download "$BASE_URL" "$RAW" || fail "No se pudo descargar el Instalador E-Sign."
   FETCHED="raw"
 fi
 
@@ -128,5 +128,5 @@ mv -f "$RAW" "$BINARY"
 chmod 700 "$BINARY"
 rm -f "$XZ_FILE" "$GZIP_FILE"
 
-echo "Verified official installer. Starting command: $MODE"
+echo "Instalador verificado. Iniciando la opcion: $MODE"
 exec "$BINARY" "$MODE" </dev/null
