@@ -51,13 +51,7 @@ for tool in minis-bonjour minis-open sha256sum; do
   command -v "$tool" >/dev/null 2>&1 || fail "Required command not found: $tool"
 done
 
-if command -v curl >/dev/null 2>&1; then
-  DOWNLOADER="curl"
-elif command -v wget >/dev/null 2>&1; then
-  DOWNLOADER="wget"
-else
-  fail "Install curl or wget in Open Minis, then try again."
-fi
+command -v wget >/dev/null 2>&1 || fail "wget is required in Open Minis."
 
 HOME_DIR="${HOME:?HOME is not set}"
 INSTALL_DIR="$HOME_DIR/.e-sign/bin"
@@ -70,14 +64,8 @@ download() {
   destination="$2"
   attempt=1
   while [ "$attempt" -le 3 ]; do
-    if [ "$DOWNLOADER" = "curl" ]; then
-      if curl --fail --location --silent --show-error --retry 1 --continue-at - "$url" -o "$destination"; then
-        return 0
-      fi
-    else
-      if wget --quiet --continue -O "$destination" "$url"; then
-        return 0
-      fi
+    if wget -q -c -O "$destination" "$url"; then
+      return 0
     fi
     attempt=$((attempt + 1))
     echo "Download attempt failed; retrying ($attempt/3)..." >&2
