@@ -1,6 +1,6 @@
 #!/bin/sh
 # E-Sign installer launcher for Open Minis
-# Downloads the official AppleJR installer and verifies every artifact before execution.
+# Downloads the E-Sign installer from its published source and verifies every artifact.
 set -eu
 umask 077
 
@@ -64,11 +64,14 @@ download() {
   destination="$2"
   attempt=1
   while [ "$attempt" -le 3 ]; do
-    if wget -q -c -O "$destination" "$url"; then
+    if wget -q -O "$destination" "$url"; then
       return 0
     fi
+    if [ "$attempt" -lt 3 ]; then
+      next_attempt=$((attempt + 1))
+      echo "Download attempt failed; retrying ($next_attempt/3)..." >&2
+    fi
     attempt=$((attempt + 1))
-    echo "Download attempt failed; retrying ($attempt/3)..." >&2
   done
   return 1
 }
@@ -81,29 +84,30 @@ verify_sha256() {
 }
 
 echo "E-Sign $VERSION (build $BUILD) — Open Minis / $ARCH"
-echo "Preparing the official AppleJR installer..."
+echo "Downloading E-Sign installer..."
 
 RAW="$TMP_DIR/e-sign-installer.bin"
 XZ_FILE="$TMP_DIR/e-sign-installer.bin.xz"
 GZIP_FILE="$TMP_DIR/e-sign-installer.bin.gz"
 FETCHED=""
 
-# Prefer compressed downloads, then fall back to the raw executable.
-if download "${BASE_URL}.xz" "$XZ_FILE"; then
-  if [ "$(sha256sum "$XZ_FILE" | awk '{print $1}')" = "$SHA256_XZ" ]; then
-    command -v xz >/dev/null 2>&1 || fail "The xz utility is required to unpack the verified download."
-    xz -dc "$XZ_FILE" > "$RAW" || fail "Could not unpack the XZ download."
-    FETCHED="xz"
-  else
-    rm -f "$XZ_FILE"
-    echo "XZ checksum did not match; trying another format..." >&2
+# Use a compressed format only when its decompressor is available.
+# wget overwrites each attempt instead of resuming stale partial files (which can cause HTTP 416).
+if command -v xz >/dev/null 2>&1; then
+  if download "${BASE_URL}.xz" "$XZ_FILE"; then
+    if [ "$(sha256sum "$XZ_FILE" | awk '{print $1}')" = "$SHA256_XZ" ]; then
+      xz -dc "$XZ_FILE" > "$RAW" || fail "Could not unpack the XZ download."
+      FETCHED="xz"
+    else
+      rm -f "$XZ_FILE"
+      echo "XZ checksum did not match; trying another format..." >&2
+    fi
   fi
 fi
 
-if [ -z "$FETCHED" ]; then
+if [ -z "$FETCHED" ] && command -v gzip >/dev/null 2>&1; then
   if download "${BASE_URL}.gz" "$GZIP_FILE"; then
     if [ "$(sha256sum "$GZIP_FILE" | awk '{print $1}')" = "$SHA256_GZIP" ]; then
-      command -v gzip >/dev/null 2>&1 || fail "The gzip utility is required to unpack the verified download."
       gzip -dc "$GZIP_FILE" > "$RAW" || fail "Could not unpack the GZIP download."
       FETCHED="gzip"
     else
@@ -114,7 +118,7 @@ if [ -z "$FETCHED" ]; then
 fi
 
 if [ -z "$FETCHED" ]; then
-  download "$BASE_URL" "$RAW" || fail "Could not download the official E-Sign installer."
+  download "$BASE_URL" "$RAW" || fail "Could not download the E-Sign installer."
   FETCHED="raw"
 fi
 
