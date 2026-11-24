@@ -1,41 +1,42 @@
-# E-Sign for Open Minis
+# Instalador E-Sign para Open Minis
 
-This directory contains a lightweight launcher for the official AppleJR E-Sign installer.
+Lanzador de Davidios para ejecutar el instalador de E-Sign en Open Minis.
 
-## Usage
+## Uso
 
-Run from Open Minis:
+Para iniciar la instalacion:
 
 ```sh
 sh install.sh
 ```
 
-The default command is `install`. The launcher also forwards these commands to the official installer:
+Si no se indica una opcion, se utiliza `install`. Tambien se pueden ejecutar estas opciones:
 
-- `check`
-- `pair`
-- `developer-mode`
-- `sign-out`
+- `check`: comprobar el entorno.
+- `pair`: iniciar el emparejamiento.
+- `developer-mode`: gestionar el modo de desarrollador.
+- `sign-out`: cerrar la sesion.
 
-For example:
+Ejemplo:
 
 ```sh
 sh install.sh check
 ```
 
-## What the launcher does
+## Que hace este instalador
 
-- Checks that it is running on Linux ARM64.
-- Checks for the Open Minis helper commands `minis-bonjour` and `minis-open`, plus `sha256sum`.
-- Downloads the official AppleJR E-Sign installer from `applejr.net`.
-- Tries the XZ and GZIP variants before falling back to the raw binary.
-- Verifies the published SHA-256 digest of the downloaded archive and the extracted executable.
-- Stores the verified executable at `~/.e-sign/bin/e-sign-installer` and forwards the requested command.
+- Comprueba que el sistema sea Linux ARM64.
+- Verifica que esten disponibles `minis-bonjour`, `minis-open`, `sha256sum` y `wget`.
+- Descarga el instalador E-Sign desde su servidor de distribucion.
+- Utiliza XZ o GZIP si el dispositivo dispone de la herramienta necesaria; de lo contrario, descarga el archivo original.
+- Verifica las sumas SHA-256 antes de ejecutar el archivo.
+- Guarda el ejecutable verificado en `~/.e-sign/bin/e-sign-installer` y le envia la opcion seleccionada.
 
-The executable itself is proprietary and is **not included in this repository**. It is downloaded directly from AppleJR when the launcher runs.
+El ejecutable de E-Sign no se incluye en este repositorio. Se descarga desde su fuente de distribucion y se verifica antes de ejecutarlo.
 
-## Version information
+## Version
 
-- E-Sign installer: 0.2.2
-- Build: 24
-- Target architecture: aarch64
+- Instalador E-Sign: 0.2.2
+- Compilacion: 24
+- Arquitectura: aarch64
+- Lanzador: Davidios
